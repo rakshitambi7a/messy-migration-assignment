@@ -39,3 +39,28 @@ class UserValidator:
             errors.append("Password must be at least 8 characters long")
         
         return errors
+
+
+# Standalone functions for direct import
+def validate_email(email: str) -> bool:
+    """Validate email format"""
+    return UserValidator.validate_email(email)
+
+
+def validate_user_data(data: Dict) -> bool:
+    """Validate user data - returns True if valid, False if invalid"""
+    try:
+        errors = UserValidator.validate_user_data(data)
+        return len(errors) == 0
+    except ValidationError:
+        return False
+
+
+def validate_password(password: str) -> bool:
+    """Validate password strength"""
+    return UserValidator.validate_password(password)
+
+
+def validate_name(name: str) -> bool:
+    """Validate name format"""
+    return UserValidator.validate_name(name)

@@ -12,6 +12,10 @@ class Database:
     _lock = threading.Lock()
     
     def __new__(cls, db_path=None):
+        # In testing mode, always create a new instance to allow different db paths
+        if os.getenv('TESTING') == 'true':
+            return super().__new__(cls)
+        
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -19,7 +23,8 @@ class Database:
         return cls._instance
     
     def __init__(self, db_path=None):
-        if not hasattr(self, 'initialized'):
+        # Always reinitialize if in testing mode, or if not initialized yet
+        if os.getenv('TESTING') == 'true' or not hasattr(self, 'initialized'):
             # Use the database path from the .env file or default to 'users.db'
             # Check multiple possible environment variable names
             self.db_path = (db_path or 
@@ -38,20 +43,26 @@ class Database:
             conn.close()
     
     def execute_query(self, query, params=None):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            conn.commit()
-            return cursor.fetchall()
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                conn.commit()
+                return cursor.fetchall()
+        except Exception as e:
+            raise
     
     def execute_one(self, query, params=None):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchone()
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                return cursor.fetchone()
+        except Exception as e:
+            raise

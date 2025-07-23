@@ -1,8 +1,13 @@
+"""
+User routes with proper dependency injection and service layer usage
+Demonstrates clean separation between web layer and business logic
+"""
 from flask import Blueprint, request, jsonify, g
 from models.user import User
 from utils.validators import UserValidator
 from services.auth_service import AuthService
 from services.jwt_service import token_required, optional_token
+from core.container import container
 import os
 
 def debug_print(message):
@@ -12,19 +17,35 @@ def debug_print(message):
 
 user_bp = Blueprint('users', __name__)
 
+# Dependency injection - get services from container
+def get_user_service():
+    """Get user service from dependency injection container"""
+    return container.user_service()
+
 @user_bp.route('/users', methods=['GET'])
 @optional_token
 def get_all_users():
     """Get all users. Authentication is optional for this endpoint."""
-    users = User.get_all()
-    return jsonify([user.to_dict() for user in users])
+    try:
+        user_service = get_user_service()
+        users = user_service.list_users()
+        return jsonify([user.to_dict() for user in users])
+    except Exception as e:
+        debug_print(f"Error in get_all_users: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @user_bp.route('/user/<int:user_id>', methods=['GET'])
 def get_user(user_id):
-    user = User.find_by_id(user_id)
-    if user:
-        return jsonify(user.to_dict())
-    return jsonify({"error": "User not found"}), 404
+    """Get user by ID"""
+    try:
+        user_service = get_user_service()
+        user = user_service.get_user_by_id(user_id)
+        if user:
+            return jsonify(user.to_dict())
+        return jsonify({"error": "User not found"}), 404
+    except Exception as e:
+        debug_print(f"Error in get_user: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @user_bp.route('/profile', methods=['GET'])
 @token_required
@@ -44,8 +65,7 @@ def get_profile():
 def create_user():
     """
     Create a new user with the provided data.
-    Expects JSON payload with 'name', 'email', and 'password'.
-    Returns a success message and user details on success, or an error message on failure.
+    Uses dependency injection and service layer for business logic.
     """
     try:
         # Step 1: Get and validate JSON data
@@ -55,91 +75,80 @@ def create_user():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # Step 2: Check required fields exist
-        required_fields = ['name', 'email', 'password']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
+        # Step 2: Use service layer for user creation
+        user_service = get_user_service()
+        result = user_service.create_user(data)
         
-        debug_print(f"DEBUG: About to validate data")
+        debug_print(f"DEBUG: Service result: {result}")
         
-        # Step 3: Validate data
-        errors = UserValidator.validate_user_data(data)
-        if errors:
-            debug_print(f"DEBUG: Validation errors: {errors}")
-            return jsonify({"errors": errors}), 400
-        
-        debug_print(f"DEBUG: About to create user object")
-        
-        # Step 4: Create user object
-        user = User(
-            name=data['name'].strip(),
-            email=data['email'].strip(),
-            password=data['password']
-        )
-        
-        debug_print(f"DEBUG: User object created, about to save")
-        
-        # Step 5: Save user
-        user.save()
-        
-        debug_print(f"DEBUG: User saved successfully")
-        
-        return jsonify({"message": "User created", "user": user.to_dict()}), 201
+        # Step 3: Handle service response
+        if result.get("success"):
+            return jsonify({
+                "message": "User created successfully", 
+                "user": result["user"]
+            }), 201
+        else:
+            return jsonify({"error": result.get("error", "Failed to create user")}), 400
     
-    except ValueError as e:
-        debug_print(f"DEBUG: ValueError caught: {str(e)}")
-        return jsonify({"error": f"Invalid data: {str(e)}"}), 400
-    except AttributeError as e:
-        debug_print(f"DEBUG: AttributeError caught: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"Invalid attribute in data: {str(e)}"}), 400
     except Exception as e:
         debug_print(f"DEBUG: Unexpected error caught: {str(e)}")
-        debug_print(f"DEBUG: Error type: {type(e).__name__}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 @user_bp.route('/user/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
+    """Update user using service layer"""
     try:
-        user = User.find_by_id(user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        user.name = data.get('name', user.name).strip()
-        user.email = data.get('email', user.email).strip()
+        user_service = get_user_service()
+        result = user_service.update_user(user_id, data)
         
-        user.save()
-        return jsonify({"message": "User updated", "user": user.to_dict()})
+        if result.get("success"):
+            return jsonify({
+                "message": "User updated successfully", 
+                "user": result["user"]
+            })
+        else:
+            status_code = 404 if "not found" in result.get("error", "").lower() else 400
+            return jsonify({"error": result.get("error", "Failed to update user")}), status_code
     
     except Exception as e:
+        debug_print(f"Error in update_user: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
 @user_bp.route('/user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
+    """Delete user using service layer"""
     try:
-        user = User.find_by_id(user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+        user_service = get_user_service()
+        result = user_service.delete_user(user_id)
         
-        user.delete()
-        return jsonify({"message": "User deleted"})
+        if result.get("success"):
+            return jsonify({"message": result.get("message", "User deleted successfully")})
+        else:
+            status_code = 404 if "not found" in result.get("error", "").lower() else 400
+            return jsonify({"error": result.get("error", "Failed to delete user")}), status_code
     
     except Exception as e:
+        debug_print(f"Error in delete_user: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
 @user_bp.route('/search', methods=['GET'])
 def search_users():
-    name = request.args.get('name', '').strip()
-    if not name:
-        return jsonify({"error": "Please provide a name to search"}), 400
+    """Search users using service layer"""
+    try:
+        query = request.args.get('name', '').strip()
+        if not query:
+            return jsonify({"error": "Please provide a name to search"}), 400
+        
+        user_service = get_user_service()
+        users = user_service.search_users(query)
+        return jsonify([user.to_dict() for user in users])
     
-    users = User.search_by_name(name)
-    return jsonify([user.to_dict() for user in users])
+    except Exception as e:
+        debug_print(f"Error in search_users: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
