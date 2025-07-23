@@ -1,5 +1,5 @@
 from flask import Flask
-from debug.config import Config
+from config.settings import get_config
 from routes.user_routes import user_bp
 from routes.auth import auth_bp
 from utils.rate_limit import rate_limit_config
@@ -8,7 +8,8 @@ import os
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
+    config = get_config()
+    app.config.from_object(config)
     
     # Initialize security logging
     security_logger = get_security_logger()

@@ -47,7 +47,19 @@ python migrations/migrate_passwords.py
 ## Change 3: Seperation of Concerns: 
 Since all the logic was in one giant file. A nightmare for code organization. Seperated the routes, services and db connection logic into their respective files/directories
 ``` The current files heirarchy:
-
+├── app.py                 # Main Flask application
+├── config/               # Configuration management
+├── core/                 # Dependency injection
+├── db/                   # Database layer
+├── models/               # Data models  
+├── repositories/         # Repository pattern
+├── services/             # Business logic
+├── routes/               # API endpoints
+├── utils/                # Utilities & validators
+├── tests/                # Complete test suite (44 tests)
+├── requirements.txt      # Dependencies
+├── README.md            # Documentation
+└── .env.example         # Environment template
 ```
 ## Change 4: Added Validators:
 There was no validation in place for the name, email and password fields, created validators and added to the utils directory.
