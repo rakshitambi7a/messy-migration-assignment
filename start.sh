@@ -6,10 +6,10 @@
 set -e
 
 if [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found. Please run ./setup.sh first."
+    echo " Virtual environment not found. Please run ./setup.sh first."
     exit 1
 fi
 
-echo "🚀 Starting User Management API..."
+echo " Starting User Management API..."
 source venv/bin/activate
 python app.py
