@@ -3,6 +3,12 @@ from models.user import User
 from utils.validators import UserValidator
 from services.auth_service import AuthService
 from services.jwt_service import token_required, optional_token
+import os
+
+def debug_print(message):
+    """Print debug message only if not in testing mode"""
+    if not os.getenv('TESTING'):
+        print(message)
 
 user_bp = Blueprint('users', __name__)
 
@@ -44,7 +50,7 @@ def create_user():
     try:
         # Step 1: Get and validate JSON data
         data = request.get_json()
-        print(f"DEBUG: Received data: {data}")
+        debug_print(f"DEBUG: Received data: {data}")
         
         if not data:
             return jsonify({"error": "No data provided"}), 400
@@ -55,15 +61,15 @@ def create_user():
             if field not in data:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
         
-        print(f"DEBUG: About to validate data")
+        debug_print(f"DEBUG: About to validate data")
         
         # Step 3: Validate data
         errors = UserValidator.validate_user_data(data)
         if errors:
-            print(f"DEBUG: Validation errors: {errors}")
+            debug_print(f"DEBUG: Validation errors: {errors}")
             return jsonify({"errors": errors}), 400
         
-        print(f"DEBUG: About to create user object")
+        debug_print(f"DEBUG: About to create user object")
         
         # Step 4: Create user object
         user = User(
@@ -72,26 +78,26 @@ def create_user():
             password=data['password']
         )
         
-        print(f"DEBUG: User object created, about to save")
+        debug_print(f"DEBUG: User object created, about to save")
         
         # Step 5: Save user
         user.save()
         
-        print(f"DEBUG: User saved successfully")
+        debug_print(f"DEBUG: User saved successfully")
         
         return jsonify({"message": "User created", "user": user.to_dict()}), 201
     
     except ValueError as e:
-        print(f"DEBUG: ValueError caught: {str(e)}")
+        debug_print(f"DEBUG: ValueError caught: {str(e)}")
         return jsonify({"error": f"Invalid data: {str(e)}"}), 400
     except AttributeError as e:
-        print(f"DEBUG: AttributeError caught: {str(e)}")
+        debug_print(f"DEBUG: AttributeError caught: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Invalid attribute in data: {str(e)}"}), 400
     except Exception as e:
-        print(f"DEBUG: Unexpected error caught: {str(e)}")
-        print(f"DEBUG: Error type: {type(e).__name__}")
+        debug_print(f"DEBUG: Unexpected error caught: {str(e)}")
+        debug_print(f"DEBUG: Error type: {type(e).__name__}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500

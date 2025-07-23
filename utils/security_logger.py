@@ -14,7 +14,12 @@ class SecurityLogger:
     
     def __init__(self, log_file: str = None, log_level: str = "INFO"):
         self.logger = logging.getLogger('security')
-        self.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+        
+        # Suppress logging during tests
+        if os.getenv('TESTING'):
+            self.logger.setLevel(logging.CRITICAL)  # Only show critical errors during tests
+        else:
+            self.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
         
         # Clear existing handlers to avoid duplicates
         self.logger.handlers.clear()

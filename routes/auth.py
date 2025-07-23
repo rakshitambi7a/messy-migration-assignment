@@ -18,7 +18,12 @@ def login():
     
     try:
         # Get JSON data from request
-        data = request.get_json()
+        try:
+            data = request.get_json()
+        except Exception:
+            # Handle case where content-type is application/json but no data
+            data = None
+            
         if not data:
             security_logger.log_authentication_failure("No data provided")
             return jsonify({"error": "No data provided"}), 400
@@ -69,5 +74,5 @@ def login():
     
     except Exception as e:
         # Log the error for debugging
-        security_logger.log_authentication_failure("Login endpoint error", data.get('email') if data else None)
+        security_logger.log_authentication_failure("Login endpoint error")
         return jsonify({"error": "Internal server error"}), 500

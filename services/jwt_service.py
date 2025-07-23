@@ -7,6 +7,11 @@ from flask import request, jsonify, g
 from models.user import User
 from utils.security_logger import get_security_logger
 
+def debug_print(message):
+    """Print debug message only if not in testing mode"""
+    if not os.getenv('TESTING'):
+        print(message)
+
 class JWTService:
     """
     JWT token management service with secure token generation and validation.
@@ -58,19 +63,19 @@ class JWTService:
             Decoded payload if valid, None if invalid
         """
         try:
-            print(f"DEBUG: Validating token with secret: {self.secret_key[:10]}...")
+            debug_print(f"DEBUG: Validating token with secret: {self.secret_key[:10]}...")
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
-            print(f"DEBUG: Token decoded successfully: {payload}")
+            debug_print(f"DEBUG: Token decoded successfully: {payload}")
             
             # Check if token is expired
             exp_timestamp = payload.get('exp')
             if exp_timestamp:
                 exp_datetime = datetime.fromtimestamp(exp_timestamp)
                 current_time = datetime.utcnow()
-                print(f"DEBUG: Token expires at: {exp_datetime}, current time: {current_time}")
+                debug_print(f"DEBUG: Token expires at: {exp_datetime}, current time: {current_time}")
                 
                 if current_time > exp_datetime:
-                    print(f"DEBUG: Token has expired")
+                    debug_print(f"DEBUG: Token has expired")
                     self.security_logger.log_token_event('expired', payload.get('user_id'))
                     return None
             
@@ -78,15 +83,15 @@ class JWTService:
             return payload
             
         except jwt.ExpiredSignatureError:
-            print(f"DEBUG: JWT ExpiredSignatureError")
+            debug_print(f"DEBUG: JWT ExpiredSignatureError")
             self.security_logger.log_token_event('expired', None, 'Signature expired')
             return None
         except jwt.InvalidTokenError as e:
-            print(f"DEBUG: JWT InvalidTokenError: {e}")
+            debug_print(f"DEBUG: JWT InvalidTokenError: {e}")
             self.security_logger.log_token_event('invalid', None, str(e))
             return None
         except Exception as e:
-            print(f"DEBUG: Unexpected error in token validation: {e}")
+            debug_print(f"DEBUG: Unexpected error in token validation: {e}")
             self.security_logger.log_token_event('validation_failed', None, str(e))
             return None
     
@@ -123,50 +128,50 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         
-        print(f"DEBUG: Headers: {dict(request.headers)}")
+        debug_print(f"DEBUG: Headers: {dict(request.headers)}")
         
         # Check for token in Authorization header
         auth_header = request.headers.get('Authorization')
-        print(f"DEBUG: Authorization header: {auth_header}")
+        debug_print(f"DEBUG: Authorization header: {auth_header}")
         
         if auth_header:
             try:
                 # Expected format: "Bearer <token>"
                 parts = auth_header.split(" ")
-                print(f"DEBUG: Auth header parts: {parts}")
+                debug_print(f"DEBUG: Auth header parts: {parts}")
                 if len(parts) == 2 and parts[0].lower() == 'bearer':
                     token = parts[1]
-                    print(f"DEBUG: Extracted token: {token[:20]}...")
+                    debug_print(f"DEBUG: Extracted token: {token[:20]}...")
                 else:
-                    print(f"DEBUG: Invalid auth header format")
+                    debug_print(f"DEBUG: Invalid auth header format")
                     return jsonify({'error': 'Invalid token format. Use: Bearer <token>'}), 401
             except IndexError:
-                print(f"DEBUG: IndexError when parsing auth header")
+                debug_print(f"DEBUG: IndexError when parsing auth header")
                 return jsonify({'error': 'Invalid token format. Use: Bearer <token>'}), 401
         
         # Check for token in request args (for testing purposes)
         if not token:
             token = request.args.get('token')
             if token:
-                print(f"DEBUG: Token found in query params: {token[:20]}...")
+                debug_print(f"DEBUG: Token found in query params: {token[:20]}...")
         
         if not token:
-            print(f"DEBUG: No token found anywhere")
+            debug_print(f"DEBUG: No token found anywhere")
             get_security_logger().log_authentication_failure('missing_token')
             return jsonify({'error': 'Token is missing'}), 401
         
-        print(f"DEBUG: About to validate token")
+        debug_print(f"DEBUG: About to validate token")
         
         # Validate token and get user
         user = jwt_service.get_user_from_token(token)
-        print(f"DEBUG: User from token: {user}")
+        debug_print(f"DEBUG: User from token: {user}")
         
         if not user:
-            print(f"DEBUG: Token validation failed")
+            debug_print(f"DEBUG: Token validation failed")
             get_security_logger().log_authentication_failure('invalid_token')
             return jsonify({'error': 'Token is invalid or expired'}), 401
         
-        print(f"DEBUG: Token validation successful for user: {user.email}")
+        debug_print(f"DEBUG: Token validation successful for user: {user.email}")
         
         # Make user available in request context
         g.current_user = user

@@ -23,25 +23,20 @@ class TestUserAPI:
     @pytest.fixture
     def app(self):
         """Create test app instance"""
+        # Use a test database file
+        test_db_path = '/tmp/test_users.db'
         os.environ['TESTING'] = 'true'
-        os.environ['DATABASE_PATH'] = ':memory:'  # Use in-memory database for tests
-        app = create_app()
-        app.config['TESTING'] = True
-        return app
-    
-    @pytest.fixture
-    def client(self, app):
-        """Create test client"""
-        return app.test_client()
-    
-    @pytest.fixture
-    def init_db(self):
-        """Initialize test database"""
-        # Create users table for testing
-        db = Database(':memory:')
+        os.environ['DATABASE_PATH'] = test_db_path
+        os.environ['FLASK_ENV'] = 'testing'  # Suppress debug output
+        
+        # Initialize database table manually for testing
+        from db.database import Database
+        db = Database(test_db_path)
         with db.get_connection() as conn:
+            # Drop and recreate table for clean tests
+            conn.execute('DROP TABLE IF EXISTS users')
             conn.execute('''
-                CREATE TABLE IF NOT EXISTS users (
+                CREATE TABLE users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
@@ -49,7 +44,23 @@ class TestUserAPI:
                 )
             ''')
             conn.commit()
-        return db
+        
+        app = create_app()
+        app.config['TESTING'] = True
+        app.config['DEBUG'] = False  # Disable debug output in tests
+        
+        yield app
+        
+        # Cleanup after test
+        try:
+            os.remove(test_db_path)
+        except:
+            pass
+    
+    @pytest.fixture
+    def client(self, app):
+        """Create test client"""
+        return app.test_client()
 
 class TestBasicEndpoints(TestUserAPI):
     """Test basic API endpoints"""
@@ -147,7 +158,7 @@ class TestAuthentication(TestUserAPI):
     
     def test_login_missing_data(self, client):
         """Test login without data"""
-        response = client.post('/login')
+        response = client.post('/login', content_type='application/json')
         assert response.status_code == 400
         data = json.loads(response.data)
         assert data['error'] == 'No data provided'
