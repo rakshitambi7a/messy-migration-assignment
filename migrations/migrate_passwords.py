@@ -3,15 +3,22 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 def migrate_plaintext_to_bcrypt():
     """
-    Migrate all plaintext passwords to bcrypt hashed passwords.
-    This function identifies plaintext passwords and converts them to bcrypt.
+    Migrate all plaintext passwords to hashed passwords using werkzeug.
+    This function identifies plaintext passwords and converts them to hashed passwords.
     """
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-    
-    # Get all users
-    cursor.execute("SELECT id, email, password FROM users")
-    users = cursor.fetchall()
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Get all users
+        cursor.execute("SELECT id, email, password FROM users")
+        users = cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return
     
     migration_count = 0
     
@@ -22,7 +29,11 @@ def migrate_plaintext_to_bcrypt():
             stored_password = stored_password.decode('utf-8')
             
         if stored_password.startswith("pbkdf2:sha256:"):
-            print(f"User {email} (ID: {user_id}) already has hashed password - skipping")
+        try:
+            hashed_password = generate_password_hash(stored_password)
+        except Exception as e:
+            print(f"Error hashing password for user {email} (ID: {user_id}): {e}")
+            continue
             continue
         
         # This is a plaintext password, convert to hashed password
