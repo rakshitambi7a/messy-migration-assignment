@@ -31,15 +31,11 @@ REM Upgrade pip
 echo ⬆️  Upgrading pip...
 python -m pip install --upgrade pip
 
-REM Install dependencies
-echo � Installing dependencies...
-pip install -r requirements.txt
+
 
 REM Install development dependencies (optional)
-if "%1"=="dev" (
-    echo 🔧 Installing development dependencies...
-    pip install -r requirements-dev.txt
-)
+echo 📦 Installing dev dependencies...
+pip install -r requirements-dev.txt
 
 REM Check if .env exists, if not copy from example
 if not exist ".env" (

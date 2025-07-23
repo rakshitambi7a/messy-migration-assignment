@@ -41,15 +41,9 @@ source venv/bin/activate
 echo "⬆️  Upgrading pip..."
 pip install --upgrade pip
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-pip install -r requirements.txt
-
-# Install development dependencies (optional)
-if [ "$1" = "--dev" ] || [ "$1" = "-d" ]; then
-    echo "🔧 Installing development dependencies..."
-    pip install -r requirements-dev.txt
-fi
+# Install development dependencies
+echo "📦 Installing dev dependencies..."
+pip install -r requirements-dev.txt
 
 # Check if .env exists, if not copy from example
 if [ ! -f ".env" ]; then
