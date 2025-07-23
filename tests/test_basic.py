@@ -85,9 +85,12 @@ class TestUserManagement(TestUserAPI):
     
     def test_create_user_success(self, client):
         """Test successful user creation"""
+        import uuid
+        unique_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+        
         user_data = {
             "name": "Test User",
-            "email": "test@example.com",
+            "email": unique_email,
             "password": "password123"
         }
         
@@ -97,7 +100,7 @@ class TestUserManagement(TestUserAPI):
         
         assert response.status_code == 201
         data = json.loads(response.data)
-        assert data['message'] == 'User created'
+        assert data['message'] == 'User created successfully'
         assert 'user' in data
         assert data['user']['email'] == user_data['email']
     
@@ -130,7 +133,7 @@ class TestUserManagement(TestUserAPI):
         
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'errors' in data
+        assert 'error' in data  # Updated to match new service response format
     
     def test_get_all_users(self, client):
         """Test getting all users"""

@@ -19,3 +19,7 @@ mypy>=0.950
 
 # Environment management
 python-dotenv>=0.19.0
+
+# Additional dependencies for improved architecture
+dataclasses-json>=0.5.7  # For better data serialization
+dependency-injector>=4.41.0  # Professional DI container
