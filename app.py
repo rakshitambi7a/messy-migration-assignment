@@ -14,7 +14,7 @@ def create_app():
     
     @app.route('/')
     def home():
-        return "User Management System"
+        return "User Management System: Now working!"
     
     return app
 

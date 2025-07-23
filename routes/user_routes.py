@@ -1,12 +1,15 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from models.user import User
 from utils.validators import UserValidator
 from services.auth_service import AuthService
+from services.jwt_service import token_required, optional_token
 
 user_bp = Blueprint('users', __name__)
 
 @user_bp.route('/users', methods=['GET'])
+@optional_token
 def get_all_users():
+    """Get all users. Authentication is optional for this endpoint."""
     users = User.get_all()
     return jsonify([user.to_dict() for user in users])
 
@@ -16,6 +19,20 @@ def get_user(user_id):
     if user:
         return jsonify(user.to_dict())
     return jsonify({"error": "User not found"}), 404
+
+@user_bp.route('/profile', methods=['GET'])
+@token_required
+def get_profile():
+    """
+    Get current user's profile. Requires JWT authentication.
+    Demonstrates protected route functionality.
+    """
+    current_user = g.current_user
+    return jsonify({
+        "message": "Profile retrieved successfully",
+        "user": current_user.to_dict(),
+        "authenticated": True
+    })
 
 @user_bp.route('/users', methods=['POST'])
 def create_user():
