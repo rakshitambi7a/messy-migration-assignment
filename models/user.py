@@ -48,12 +48,15 @@ class User:
             # Create new user
             if self.password is None:
                 raise ValueError("Password cannot be None for a new user.")
+            
             hashed_password = generate_password_hash(self.password)
-            result = self.db.execute_query(
-                "INSERT INTO users (name, email, password) VALUES (?, ?, ?) RETURNING id",
+            self.db.execute_query(
+                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
                 (self.name, self.email, hashed_password)
             )
-            self.id = result[0]['id'] if result else None
+            # Get the last inserted row ID for SQLite
+            result = self.db.execute_one("SELECT last_insert_rowid() as id")
+            self.id = result['id'] if result else None
     
     def delete(self):
         if self.id:

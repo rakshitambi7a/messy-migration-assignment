@@ -37,3 +37,10 @@ python3 -m venv venv
 source venv/bin/activate
 # On Windows:
 venv\Scripts\activate
+```
+## Change 2: Added a migration script for password hashing using werkzeug for legacy plaintext passwords
+### Migration Script
+```bash
+# Migrate plaintext passwords to hashed passwords using werkzeug
+python migrations/migrate_passwords.py
+```

@@ -21,7 +21,11 @@ class Database:
     def __init__(self, db_path=None):
         if not hasattr(self, 'initialized'):
             # Use the database path from the .env file or default to 'users.db'
-            self.db_path = db_path or os.getenv('DB_PATH', 'users.db')
+            # Check multiple possible environment variable names
+            self.db_path = (db_path or 
+                           os.getenv('DATABASE_PATH') or 
+                           os.getenv('DB_PATH') or 
+                           'users.db')
             self.initialized = True
     
     @contextmanager
