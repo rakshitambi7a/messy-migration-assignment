@@ -118,3 +118,4 @@ If you have questions about the requirements, please email [anand@retainsure.com
 ---
 
 Remember: We're not looking for perfection. We want to see how you approach real-world code problems, prioritize improvements, and communicate your decisions.
+didnt get selected 😢
